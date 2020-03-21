@@ -1,3 +1,14 @@
 #first downloaded as excel file, removed notes and metadata and coverted to csv file.
+#read data
 Stumps <- read.csv(file = "Field Sampling Datasheet.csv", header = TRUE)
 head(Stumps)
+library(dplyr)
+
+#summarise data
+#this is just looking at diameter by species and decay class to see what our samples were like
+
+Stump_summary <- Stumps %>% 
+group_by(CWDspecies, decay_stage) %>% 
+summarise(mean_diameter = mean(diameter..cm.),
+sd_diameter = sd(diameter..cm.),
+SE_diameter = sd(diameter..cm.)/sqrt(n()))
