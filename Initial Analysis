@@ -1,0 +1,3 @@
+#first downloaded as excel file, removed notes and metadata and coverted to csv file.
+Stumps <- read.csv(file = "Field Sampling Datasheet.csv", header = TRUE)
+head(Stumps)
