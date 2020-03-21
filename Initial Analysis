@@ -12,3 +12,13 @@ group_by(CWDspecies, decay_stage) %>%
 summarise(mean_diameter = mean(diameter..cm.),
 sd_diameter = sd(diameter..cm.),
 SE_diameter = sd(diameter..cm.)/sqrt(n()))
+
+#The quickest way to visualise these data in R is to use a box plot. Load ggplot, then use,
+
+library(ggplot2)
+ggplot(Stumps, aes(CWDspecies, diameter..cm.)) + geom_boxplot()
+
+#more complicated plot
+myplot<-ggplot(Stumps)+geom_boxplot(aes(CWDspecies, diameter..cm., fill=CWDspecies)) + scale_fill_brewer(palette="Blues") +  theme_minimal() + 
+ theme(legend.justification=c(1,0),  legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))
+myplot
