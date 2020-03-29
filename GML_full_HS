@@ -1,0 +1,53 @@
+# Analysis regeneration across canopy cover and nfocal species cover
+# Authors: H. Southam
+# Date: 27 March 2020
+
+#load required packages
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(MASS)
+library(wesanderson)
+library(gridExtra)
+library(ResourceSelection)
+
+#first downloaded as excel file, removed notes and metadata and coverted to csv file.
+#read data
+Stumps <- read.csv(file = "./data/stumpdata_analysis.csv", header = TRUE)
+head(Stumps)
+dim(Stumps)
+
+#convert to long format
+Stumps_long <- gather(Stumps, regen_type, regen, tsuhet_seed:psemen_sap, factor_key = TRUE)
+#split the regen_type key into two different columns: 
+Stumps_long <- Stumps_long %>%  separate(regen_type, c("regrowth_species", "regrowth_age"))
+#rename sap and seed to sapling and seedling
+Stumps_long$regrowth_age <- factor(Stumps_long$regrowth_age, levels=c("sap", "seed"), labels=c("sapling", "seedling"))
+#create a colum with regen as density:
+Stumps_long$density <- Stumps_long$regen/(pi*(Stumps_long$diameter/200)^2)
+#create a colum with dimeter --> area (for GLM offset)
+Stumps_long$area <- pi*(Stumps_long$diameter/200)^2
+
+#MODELS:
+#Quasi-Poisson. Overdispersed so go to negative binomial. 
+m_stump_qp <- glm(regen~canopy_cover_perc+nfocalspecies_cover+regrowth_species+regrowth_age+offset(log(area)), Stumps_long, family=quasipoisson)
+summary(m_stump_qp)
+
+# GLM Negative Bionomial:
+m_stump_nb <- glm.nb(regen ~ canopy_cover_perc+nfocalspecies_cover+ +regrowth_species+regrowth_age+offset(log(area)), Stumps_long)
+summary(m_stump_nb)
+
+#Hosmer-Lemeshow test for goodness of fit. This compares the observed data (regen) to the predicrted values in the model. You want a non-significant p-value (which is what we get p=1). 
+hoslem.test(Stumps_long$regen, fitted(m_stump_nb))
+
+#PLOTS
+#1. Log Regeneration vs. Canopy Cover
+jpeg(filename="figures_tables/p_regen_cc.jpeg",width=12,height=8,units="in",res=500)
+ggplot(Stumps_long, aes(canopy_cover_perc*100, log(density), color=regrowth_species))+geom_point()+geom_smooth(method=lm, se=FALSE)+ labs(x="canopy cover (%)", y="log(density(# plants per m^2))")+facet_grid(.~regrowth_age)+ scale_color_manual(name="Regrowth Species", labels=c("P. menziesii", "T. plicata", "T. heterophylla"), values=c("#FC717F","#39B600","#529EFF"))
+dev.off()
+
+#2. Log Regeneration vs. nfocal species cover 
+jpeg(filename="figures_tables/p_regen_nfsc.jpeg",width=12,height=8,units="in",res=500)
+ggplot(Stumps_long, aes(nfocalspecies_cover, log(density), color=regrowth_species))+geom_point()+geom_smooth(method=lm, se=FALSE)+labs(x="non-focal species cover (%)", y="log(density(# plants per m^2))")+facet_grid(.~regrowth_age)+scale_color_manual(name="Regrowth Species", labels=c("P. menziesii", "T. plicata", "T. heterophylla"), values=c("#FC717F","#39B600","#529EFF"))
+dev.off()
